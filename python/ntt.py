@@ -3,6 +3,7 @@ import numpy as np
 from functools import reduce
 
 np.set_printoptions(linewidth=np.inf)
+#np.set_printoptions(threshold=np.inf)
 
 
 class Memory:
@@ -169,7 +170,7 @@ for i in range(n[1]):
     address = (np.arange(n[0]) * 1 + i * stride) % n[1]
     mem.write(data_in, address)
 
-print(mem)
+#print(mem)
 
 # First NTT of rows
 p_root = util.fast_exp(p_root_g, N // n[0], m)
@@ -177,6 +178,7 @@ p_root_r = util.principal_root_of_unity(n[0]-1, m)
 p_root_r_inv = util.fast_exp(p_root_r, m-2, m)
 rader_perm_start, rader_perm_end, B = rader(n[0], p_root, p_root_r, m)
 dit_permutations, bit_reversal, twiddle_factors = dit_fft(n[0])
+#print(np.array(twiddle_factors), sep="\n")
 
 reps = 1
 collect_first = Permutation([i * n[0] for i in range(reps)])
@@ -185,17 +187,25 @@ rader_perm_start = rader_perm_start.tile(reps, padding=1)
 rader_perm_end.permutation -= 1
 rader_perm_end = rader_perm_end.tile(reps, padding=0)
 
+merged_permutation = Permutation(np.concatenate([(rader_perm_start * bit_reversal).permutation, collect_first.permutation]))
+#print("perm 0:", list(merged_permutation.permutation[0:-1]))
+#print("perm 0:", list(merged_permutation.permutation[-1:]))
+
 for i in range(n[1]):
     # Read row from memory
     address = np.full((n[0],), i) % n[1]
     data_out = mem.read(address)
 
     # Rader permutation
-    data_permuted = rader_perm_start(data_out)
-    first_points = collect_first(data_out)
+    # data_permuted = rader_perm_start(data_out)
+    # first_points = collect_first(data_out)
 
     # Convolution with b
-    data_permuted = bit_reversal(data_permuted)
+    # data_permuted = bit_reversal(data_permuted)
+
+    data_permuted = merged_permutation(data_out)[0:-1]
+    first_points = merged_permutation(data_out)[-1:]
+
 
     stages = int(np.log2(n[0]))
     # NTT
@@ -242,6 +252,9 @@ p_root_r_inv = util.fast_exp(p_root_r, m-2, m)
 rader_perm_start, rader_perm_end, B = rader(n[1], p_root, p_root_r, m)
 dit_permutations, bit_reversal, twiddle_factors = dit_fft(n[1])
 
+#print(np.array(twiddle_factors), sep="\n")
+#exit()
+
 reps = 5
 collect_first = Permutation([i * n[1] for i in range(reps)])
 collect_second = Permutation([i * (n[1] - 1) for i in range(reps)])
@@ -250,6 +263,10 @@ rader_perm_end = rader_perm_end.tile(reps, padding=0)
 bit_reversal = bit_reversal.tile(reps)
 dit_permutations = [p.tile(reps) for p in dit_permutations]
 twiddle_factors = [np.tile(f, reps) for f in twiddle_factors]
+
+merged_permutation = pfa_perm_1 * Permutation(np.concatenate([(rader_perm_start * bit_reversal).permutation, collect_first.permutation]))
+#print("perm 1:", list(merged_permutation.permutation[0:-5]))
+#print("perm 1:", list(merged_permutation.permutation[-5:]))
 
 for i in range(n[0]):
     # Read column from memory
@@ -327,6 +344,10 @@ bit_reversal = bit_reversal.tile(reps)
 dit_permutations = [p.tile(reps) for p in dit_permutations]
 twiddle_factors = [np.tile(f, reps) for f in twiddle_factors]
 
+merged_permutation = pfa_perm_2 * (-pfa_perm_1) * Permutation(np.concatenate([(rader_perm_start * bit_reversal).permutation, collect_first.permutation]))
+#print("perm 2:", list(merged_permutation.permutation[0:-17]))
+#print("perm 2:", list(merged_permutation.permutation[-17:]))
+
 for i in range(n[0]):
     # Read column from memory
     data_out = mem.read(address % (n[1] * reps))
@@ -381,7 +402,7 @@ for i in range(n[0]):
     shift = (shift + n[1] * reps) % n[0]
     address = roll(address, n[0] - n[1] * reps)
 
-print(mem)
+#print(mem)
 
 # Values are permuted in memory, so we just check if all the correct values are present in the memory
 for val in util.ntt(x, p_root_g, m):
