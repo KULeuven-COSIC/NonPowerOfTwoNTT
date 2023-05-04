@@ -44,33 +44,6 @@ static PyObject *util_principal_root_of_unity(PyObject *self, PyObject *args) {
     return Py_None;
 }
 
-/*
-static PyObject *util_principal_root_of_unity(PyObject *self, PyObject *args) {
-    uint64_t n;
-    uint64_t m;
-    if (!PyArg_ParseTuple(args, "KK", &n, &m)) {
-        return NULL;
-    }
-    for (uint64_t x = 2; x < m; x++) {
-        if (fast_exp(x, n, m) == 1) {
-            uint64_t xi = 1;
-            uint64_t n_max = n / 2;
-            for (uint64_t i = 1; i <= n_max; i++) {
-                xi = (xi * x) % m;
-                if (xi == 1) {
-                    break;
-                }
-            }
-            if (xi != 1) {
-                return PyLong_FromUnsignedLongLong(x);
-            }
-        }
-    }
-    Py_INCREF(Py_None);
-    return Py_None;
-}
-*/
-
 static PyObject *util_fast_exp(PyObject *self, PyObject *args) {
     uint64_t b;
     uint64_t e;

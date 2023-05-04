@@ -92,6 +92,10 @@ from moduli import moduli
 
 print(len(moduli[-40:]))
 
+w = 8
+L = 4
+R = 2**(L*w)
+
 for m in reversed(moduli[-40:]):
     m = int(m)
     #p_root_g = util.fast_exp(2, (m - 1) // N, m)
@@ -116,25 +120,24 @@ for m in reversed(moduli[-40:]):
         stages = int(np.log2(n[dim]))
 
         for stage in range(stages):
-            data[idx][:len(twiddle_factors[stage])] = wn[twiddle_factors[stage]]
+            data[idx][:len(twiddle_factors[stage])] = (wn[twiddle_factors[stage]] * R) % m
             idx += 1
 
         B_data = bit_reversal(np.tile(B, reps[dim]))
         B_data_0 = B_data[::2]
         B_data_1 = B_data[1::2]
 
-        data[idx][:len(B_data_0)] = B_data_0
+        data[idx][:len(B_data_0)] = (B_data_0 * R) % m
         idx += 1
-        data[idx][:len(B_data_1)] = B_data_1
+        data[idx][:len(B_data_1)] = (B_data_1 * R) % m
         idx += 1
 
         for stage in range(stages):
-            data[idx][:len(twiddle_factors[stage])] = wn_inv[twiddle_factors[stage]]
+            data[idx][:len(twiddle_factors[stage])] = (wn_inv[twiddle_factors[stage]] * R) % m
             idx += 1
 
 
-# Write the data to a hex file
-import struct
+# Write the data to a mem file
 with open("twiddle_factor_tables.mem", "w") as f:
     for i in range(len(data[0])):
         f.write(" ".join(f"{data[j][i]:08X}" for j in range(len(data))) + "\n")
