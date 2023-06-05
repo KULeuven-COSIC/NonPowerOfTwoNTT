@@ -40,8 +40,8 @@ module bit_reversal #(
     parameter SIZE = 256,
     parameter WIDTH = 32
  ) (   
-  input wire [SIZE-1:0][WIDTH-1:0] input_list, // 256 32-bit values
-  input wire [7:0] perm_enable,
+  input wire  [SIZE-1:0][WIDTH-1:0] input_list, // 256 32-bit values
+  input wire  [2:0]                 step,
   output wire [SIZE-1:0][WIDTH-1:0] output_list
 );  
   
@@ -55,7 +55,7 @@ module bit_reversal #(
       bit_reversal_stage #(
         .DEPTH(i)
       ) bit_reversal_stage_inst (
-        .enable         (perm_enable[i]     ),
+        .enable         ((step == i) || (step == i+1)),
         .input_list     (bit_rev_stage[i-1] ),
         .output_list    (bit_rev_stage[i]   )
       );

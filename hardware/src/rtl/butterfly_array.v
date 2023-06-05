@@ -5,15 +5,16 @@ module butterfly_array #(
     parameter SIZE = 128,
     parameter LUT_SIZE = 1360
 )(
-    input  wire                       clk,
-    input  wire                       reset,
-    input  wire                       mode,  // 0 = butterfly, 1 = multiply B
-    input  wire [SIZE-1:0][WIDTH-1:0] A,
-    input  wire [SIZE-1:0][WIDTH-1:0] B,
-    input  wire [$clog2(LUT_SIZE):0]  w_idx,
-    input  wire [WIDTH-1:0]           modulus,
-    output wire [SIZE-1:0][WIDTH-1:0] A_out,
-    output wire [SIZE-1:0][WIDTH-1:0] B_out
+    input  wire                        clk,
+    input  wire                        reset,
+    input  wire                        mode,  // 0 = butterfly, 1 = multiply
+    input  wire                        swap,  // multiply A, instead of B
+    input  wire [SIZE-1:0][WIDTH-1:0]  A,
+    input  wire [SIZE-1:0][WIDTH-1:0]  B,
+    input  wire [$clog2(LUT_SIZE)-1:0] w_idx,
+    input  wire [WIDTH-1:0]            modulus,
+    output wire [SIZE-1:0][WIDTH-1:0]  A_out,
+    output wire [SIZE-1:0][WIDTH-1:0]  B_out
     );
     
     reg [WIDTH-1:0] w_lut [0:SIZE-1][0:LUT_SIZE-1];
@@ -46,6 +47,7 @@ module butterfly_array #(
                 .clk     (clk      ),
                 .reset   (reset    ),
                 .mode    (mode     ),
+                .swap    (swap     ),
                 .A       (A[i]     ),
                 .B       (B[i]     ),
                 .W       (W        ),

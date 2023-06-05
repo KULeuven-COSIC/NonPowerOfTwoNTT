@@ -15,6 +15,7 @@ module tb_dit_butterfly();
     reg  clk;
     reg  reset;
     reg  mode;
+    reg  swap;
     reg  [WIDTH-1:0] A_in;
     reg  [WIDTH-1:0] B_in;
     reg  [WIDTH-1:0] W_in;
@@ -33,6 +34,7 @@ module tb_dit_butterfly();
         .clk     (clk   ),
         .reset   (reset ),
         .mode    (mode  ),
+        .swap    (swap  ),
         .A       (A_in  ),
         .B       (B_in  ),
         .W       (W_in  ),
@@ -50,6 +52,7 @@ module tb_dit_butterfly();
     // Initialize signals to zero
     initial begin
         mode  <= 0;
+        swap  <= 0;
         A_in  <= 0;
         B_in  <= 0;
         W_in  <= 0;
@@ -84,8 +87,9 @@ module tb_dit_butterfly();
         input [WIDTH-1:0] q;
         begin
             mode <= 1'b1;
-            A_in <= 'hBAD;
-            B_in <= a;
+            swap <= 1'b1;
+            A_in <= a; //'hBAD;
+            B_in <= 'hBAD; //a;
             W_in <= b;
             q_in <= q;
             #`CLK_PERIOD;
