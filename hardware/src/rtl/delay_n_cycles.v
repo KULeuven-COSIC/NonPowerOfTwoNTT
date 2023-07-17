@@ -20,10 +20,10 @@ module delay_n_cycles #(
                 shift_reg[i] <= 0;
             end
         end else begin
-            for (i = 0; i < N; i=i+1) begin // Shift the data to the right
+            for (i = 1; i < N; i=i+1) begin // Shift the data to the right
                 shift_reg[i] <= shift_reg[i-1];
             end
-                shift_reg[0] <= data_in; // Input new data at the left end
+            shift_reg[0] <= data_in; // Input new data at the left end
         end
     end
     

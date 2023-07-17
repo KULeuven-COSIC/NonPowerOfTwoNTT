@@ -71,10 +71,21 @@ def butterfly_array(x, wn, m):
     odd = np.arange(1, n, 2)
     a = x[even]
     b = x[odd]
+
+    #print("A in:", "".join(f"{word:08x}" for word in reversed(a)))
+    #print("B in:", "".join(f"{word:08x}" for word in reversed(b)))
+    #print(wn,"\n", (wn * (2**(8*4)) % m))
+
     ar, br = butterfly(a, b, wn, m)
     x_out = np.zeros_like(x, dtype=np.int64)
     x_out[even] = ar
     x_out[odd] = br
+
+    #print("A out:", "".join(f"{word:08x}" for word in reversed(ar)))
+    #print("B out:", "".join(f"{word:08x}" for word in reversed(br)))
+
+    #print("out:", "".join(f"{word:08x}" for word in reversed(x_out)))
+
     return x_out
 
 
@@ -157,18 +168,28 @@ n = [257, 85]
 N = reduce(lambda a, b: a * b, n)
 x = list(range(N))
 #m = 5441
-m = 117438721
+m = 419424001
+
+MEM_DEPTH = 85
 
 p_root_g = util.principal_root_of_unity(N, m)
 e = util.orthogonal_idempotents(n, N)
 stride = n[0] % n[1]
+print("stride 1: ", stride)
 
 # Initialize memory
-mem = Memory(n[0], n[0])
+mem = Memory(n[0], n[1])
 for i in range(n[1]):
     data_in = x[n[0]*i:n[0]*(i+1)]
     address = (np.arange(n[0]) * 1 + i * stride) % n[1]
     mem.write(data_in, address)
+# offset memory rows
+for i in range(n[1]):
+    address = np.full((n[0],), i) % n[1]
+    data_out = mem.read(address)
+    data_mem = roll(data_out, i)
+    mem.write(data_mem, address)
+
 
 #print(mem)
 
@@ -195,6 +216,9 @@ for i in range(n[1]):
     # Read row from memory
     address = np.full((n[0],), i) % n[1]
     data_out = mem.read(address)
+    data_shifted = roll(data_out, n[0] - i)
+
+    #print(address)
 
     # Rader permutation
     # data_permuted = rader_perm_start(data_out)
@@ -203,9 +227,8 @@ for i in range(n[1]):
     # Convolution with b
     # data_permuted = bit_reversal(data_permuted)
 
-    data_permuted = merged_permutation(data_out)[0:-1]
-    first_points = merged_permutation(data_out)[-1:]
-
+    data_permuted = merged_permutation(data_shifted)[0:-1]
+    first_points = merged_permutation(data_shifted)[-1:]
 
     stages = int(np.log2(n[0]))
     # NTT
@@ -234,15 +257,36 @@ for i in range(n[1]):
 
     # Write back to memory
     data_mem = roll(data_out, i)
+
     mem.write(data_mem, address)
 
+"""
+data = []
+with open('new_memory_data.mem', 'r') as f:
+    row = []
+    i = 0
+    for line in f:
+        row.append(int(line.strip(), 16))
+        if i == 256:
+            data.append(row)
+            row = []
+            i = 0
+        else:
+            i += 1
 
+for i in range(85):
+    assert all(mem.mem.transpose()[i] == np.array(data[i]))
+exit(0)
+"""
 
 # NTT of columns
 pfa_perm_1, pfa_perm_2, pfa_perm_end = PFA([17, 5])
+#pfa_perm_1 = pfa_perm_1.tile(3, padding=0)
+#pfa_perm_2 = pfa_perm_2.tile(3, padding=0)
+#print(pfa_perm_2.permutation)
 
 # PFA 1
-address = np.arange(n[0])
+address = np.arange(n[0]) % MEM_DEPTH
 
 n = [n[0], 17]
 shift = 0
@@ -253,7 +297,6 @@ rader_perm_start, rader_perm_end, B = rader(n[1], p_root, p_root_r, m)
 dit_permutations, bit_reversal, twiddle_factors = dit_fft(n[1])
 
 #print(np.array(twiddle_factors), sep="\n")
-#exit()
 
 reps = 5
 collect_first = Permutation([i * n[1] for i in range(reps)])
@@ -264,14 +307,21 @@ bit_reversal = bit_reversal.tile(reps)
 dit_permutations = [p.tile(reps) for p in dit_permutations]
 twiddle_factors = [np.tile(f, reps) for f in twiddle_factors]
 
-merged_permutation = pfa_perm_1 * Permutation(np.concatenate([(rader_perm_start * bit_reversal).permutation, collect_first.permutation]))
-#print("perm 1:", list(merged_permutation.permutation[0:-5]))
-#print("perm 1:", list(merged_permutation.permutation[-5:]))
+
+# print(list(bit_reversal(rader_perm_start(pfa_perm_1(np.arange(85))))))
+
 
 for i in range(n[0]):
     # Read column from memory
-    data_out = mem.read(address % (n[1] * reps))
+    data_out = mem.read(address)
+    #print("".join(f"{word:08x}" for word in reversed(data_out)))
     data_shifted = roll(data_out, shift)
+
+    # print(address % MEM_DEPTH)
+    # print(address)
+    # print("--------")
+
+    data_shifted[85:] = [0] * len(data_shifted[85:])
 
     # PFA permutation
     data_shifted = pfa_perm_1(data_shifted)
@@ -284,18 +334,29 @@ for i in range(n[0]):
     data_permuted = bit_reversal(data_permuted)
     stages = int(np.log2(n[1]))
 
+    #print("".join(f"{word:08x}" for word in reversed(first_points)))
+    #print("".join(f"{word:08x}" for word in reversed(data_permuted)))
+    #print("#############")
+
     # NTT
     wn = np.array([util.fast_exp(p_root_r, i, m) for i in range(n[1] - 1)])
     for stage in range(stages):
         data_permuted = dit_permutations[stage](data_permuted)
         w = wn[twiddle_factors[stage]]
         data_permuted = butterfly_array(data_permuted, w, m)
+        #print("".join(f"{word:08x}" for word in reversed(np.insert(data_permuted, collect_second.permutation, first_points))))
+        #print("#############")
+        #print(stage, "".join(f"{word:08x}" for word in reversed(roll(data_permuted, n[0] - shift))))
+
+    #print("".join(f"{word:08x}" for word in reversed(data_permuted)))
+    #print("".join(f"{word:08x}" for word in reversed(np.insert(data_permuted, collect_second.permutation, first_points))))
 
     temp = first_points
     # corresponds to summing all points in sequence
     first_points = (first_points + collect_second(data_permuted)) % m
     # multiply with b as part of convolution
     data_permuted = np.multiply(data_permuted, bit_reversal(np.tile(B, reps))) % m
+
     # corresponds with adding first point to each other point in final result
     data_permuted[collect_second.permutation] = (collect_second(data_permuted) + temp) % m
 
@@ -313,19 +374,41 @@ for i in range(n[0]):
     #print(data_out) # This isn't strictly necessary
 
     # Write back to memory
-    mem_old = mem.read(address % (n[1] * reps))
+    mem_old = mem.read(address)
     mem_old = roll(mem_old, shift)
-    data_out = np.concatenate((data_out[:n[1] * reps], mem_old[n[1] * reps:]))
+    if i == 85 and False:
+        data_out = np.concatenate((data_out[:170], mem_old[170:]))
+    else:
+        data_out = np.concatenate((data_out[:n[1] * reps], mem_old[n[1] * reps:]))
 
     data_mem = roll(data_out, n[0] - shift)
-    mem.write(data_mem, address % (n[1] * reps))
+    mem.write(data_mem, address)
 
     shift = (shift + n[1] * reps) % n[0]
     address = roll(address, n[0] - n[1] * reps)
 
+"""
+data = []
+with open('new_memory_data.mem', 'r') as f:
+    row = []
+    i = 0
+    for line in f:
+        row.append(int(line.strip(), 16))
+        if i == 256:
+            data.append(row)
+            row = []
+            i = 0
+        else:
+            i += 1
+
+for i in range(85):
+    assert all(mem.mem.transpose()[i] == np.array(data[i]))
+exit(0)
+"""
+
 
 # PFA 2
-address = np.arange(n[0])
+address = np.arange(n[0]) % MEM_DEPTH
 
 n = [n[0], 5]
 shift = 0
@@ -344,14 +427,20 @@ bit_reversal = bit_reversal.tile(reps)
 dit_permutations = [p.tile(reps) for p in dit_permutations]
 twiddle_factors = [np.tile(f, reps) for f in twiddle_factors]
 
-merged_permutation = pfa_perm_2 * (-pfa_perm_1) * Permutation(np.concatenate([(rader_perm_start * bit_reversal).permutation, collect_first.permutation]))
-#print("perm 2:", list(merged_permutation.permutation[0:-17]))
-#print("perm 2:", list(merged_permutation.permutation[-17:]))
+#print(list(bit_reversal(rader_perm_start(pfa_perm_2((-pfa_perm_1)(np.arange(85)))))))
+#print(list(collect_first(pfa_perm_2((-pfa_perm_1)(np.arange(85))))))
 
 for i in range(n[0]):
     # Read column from memory
-    data_out = mem.read(address % (n[1] * reps))
+    data_out = mem.read(address)
+
+    #print("".join(f"{word:08x}" for word in reversed(data_out)))
+
     data_shifted = roll(data_out, shift)
+
+    #print(address % (n[1] * reps))
+    #print(address)
+    #print("--------")
 
     # PFA permutation
     data_shifted = pfa_perm_2((-pfa_perm_1)(data_shifted))
@@ -362,6 +451,10 @@ for i in range(n[0]):
 
     # Convolution with b
     data_permuted = bit_reversal(data_permuted)
+
+    #print("".join(f"{word:08x}" for word in reversed(data_permuted)))
+    #print("".join(f"{word:08x}" for word in reversed(first_points)))
+
     stages = int(np.log2(n[1]))
     # NTT
     wn = np.array([util.fast_exp(p_root_r, i, m) for i in range(n[1] - 1)])
@@ -369,6 +462,8 @@ for i in range(n[0]):
         data_permuted = dit_permutations[stage](data_permuted)
         w = wn[twiddle_factors[stage]]
         data_permuted = butterfly_array(data_permuted, w, m)
+        #print("".join(f"{word:08x}" for word in reversed(np.insert(data_permuted, collect_second.permutation, first_points))))
+        #print("#############")
 
     temp = first_points
     # corresponds to summing all points in sequence
@@ -392,19 +487,40 @@ for i in range(n[0]):
     #data_out = pfa_perm_end(data_out) # This isn't strictly necessary
 
     # Write back to memory
-    mem_old = mem.read(address % (n[1] * reps))
+    mem_old = mem.read(address)
     mem_old = roll(mem_old, shift)
-    data_out = np.concatenate((data_out[:n[1] * reps], mem_old[n[1] * reps:]))
+    if i == 256 and False:
+        data_out = np.concatenate((data_out[:170], mem_old[170:]))
+    else:
+        data_out = np.concatenate((data_out[:n[1] * reps], mem_old[n[1] * reps:]))
 
     data_mem = roll(data_out, n[0] - shift)
-    mem.write(data_mem, address % (n[1] * reps))
+    mem.write(data_mem, address)
 
     shift = (shift + n[1] * reps) % n[0]
     address = roll(address, n[0] - n[1] * reps)
 
-#print(mem)
-
 # Values are permuted in memory, so we just check if all the correct values are present in the memory
 for val in util.ntt(x, p_root_g, m):
     assert val in mem.mem
+
+
+data = []
+with open('new_memory_data.mem', 'r') as f:
+    row = []
+    i = 0
+    for line in f:
+        row.append(int(line.strip(), 16))
+        if i == 256:
+            data.append(row)
+            row = []
+            i = 0
+        else:
+            i += 1
+
+for i in range(85):
+    print(mem.mem.transpose()[i])
+    print(np.array(data[i]))
+    assert all(mem.mem.transpose()[i] == np.array(data[i]))
+exit(0)
 

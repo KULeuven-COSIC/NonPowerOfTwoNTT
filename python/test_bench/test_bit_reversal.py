@@ -59,9 +59,7 @@ def dit_fft(n):
         twiddle_factors.append(np.tile(tw, 2 ** (stages - stage)))
         tw = np.concatenate((tw, tw + 2 ** (stages - stage - 1)))
 
-    #print(*permutations, sep="\n")
-
-    return permutations, Permutation(bit_r), twiddle_factors
+    return combined_permutations, Permutation(bit_r), twiddle_factors
 
 N = 256
 combined_permutations, bit_r, twiddle_factors = dit_fft(N)
@@ -71,15 +69,17 @@ lst = []
 for depth in range(8):
     list_in = np.arange(N, dtype=np.uint32)
     result = combined_permutations[depth](list_in)
-    perm_en = (0b11 << depth) >> 1
-    lst.append((list_in, perm_en, result))
+    #perm_en = (0b11 << depth) >> 1
+    step = depth
+    lst.append((list_in, step, result))
 
 
-for list_in, perm_en, result in lst:
+for list_in, step, result in lst:
     print("#`CLK_PERIOD;")
     print("input_list = {", ", ".join(f"32'd{a}" for a in reversed(list_in)), "};", sep="")
-    print(f"depth = 8'b{bin(perm_en)[2:]};")
+    #print(f"perm_enable = 8'b{bin(perm_en)[2:]};")
+    print(f"step = 3'd{step};")
     print("expected = {", ", ".join(f"32'd{a}" for a in reversed(result)), "};", sep="")
-    print("@(result);")
+    print("#`CLK_PERIOD;")
     print("result_ok = (expected == result);")
     print("$display(\"result_ok = %x\", result_ok);\n")

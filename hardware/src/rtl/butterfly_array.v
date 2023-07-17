@@ -1,10 +1,11 @@
 `timescale 1ns / 1ps
 
+
 module butterfly_array #(
     parameter WIDTH = 32,
     parameter SIZE = 128,
     parameter LUT_SIZE = 1360
-)(
+) (
     input  wire                        clk,
     input  wire                        reset,
     input  wire                        mode,  // 0 = butterfly, 1 = multiply
@@ -19,20 +20,9 @@ module butterfly_array #(
     
     reg [WIDTH-1:0] w_lut [0:SIZE-1][0:LUT_SIZE-1];
     
-    initial begin : init_table
-      integer i;
-      integer j;
-      
-      reg [WIDTH-1:0] data [0:SIZE*LUT_SIZE-1];    
-      $readmemh("twiddle_factor_tables.mem", data);
-      
-      for (i = 0; i < SIZE; i = i+1) begin
-        for (j = 0; j < LUT_SIZE; j = j+1) begin
-          w_lut[i][j] = data[i * LUT_SIZE + j];
-        end
-      end
+    initial begin : init_table  
+      $readmemh("twiddle_factor_tables.mem", w_lut);
     end
-    
     
     genvar i;
     generate
@@ -41,9 +31,7 @@ module butterfly_array #(
             wire [WIDTH-1:0] W;
             assign W = w_lut[i][w_idx];
                         
-            dit_butterfly #(
-                .WIDTH(WIDTH)
-            ) butterfly_inst (
+            dit_butterfly butterfly_inst (
                 .clk     (clk      ),
                 .reset   (reset    ),
                 .mode    (mode     ),

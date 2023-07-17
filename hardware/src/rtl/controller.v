@@ -2,7 +2,7 @@
 
 
 module controller # (
-    parameter PIPELINE_DELAY = 12
+    parameter PIPELINE_DELAY = 1
 ) (
     input  wire                  clk,
     input  wire                  reset,
@@ -45,7 +45,7 @@ module controller # (
     reg [1:0] stage;
     reg [8:0] row;
     reg [2:0] step;
-    reg [3:0] delay;
+    reg [4:0] delay;
     
     reg incr_stage;
     reg incr_row;

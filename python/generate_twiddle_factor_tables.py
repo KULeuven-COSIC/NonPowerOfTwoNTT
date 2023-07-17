@@ -82,7 +82,7 @@ def dit_fft(n):
 
 n = [257, 17, 5]
 N = reduce(lambda a, b: a * b, n)
-reps = [1, 5, 17]
+reps = [1, 5*3, 17*3]
 
 data = [[0]*128 for _ in range(1360)]
 
@@ -92,11 +92,13 @@ from moduli import moduli
 
 print(len(moduli[-40:]))
 
+print("{", ", ".join([f"32'd{m}" for m in reversed(moduli[-40:])]), "}")
+
 w = 8
 L = 4
 R = 2**(L*w)
 
-for m in reversed(moduli[-40:]):
+for m in moduli[-40:]:
     m = int(m)
     #p_root_g = util.fast_exp(2, (m - 1) // N, m)
 
@@ -108,11 +110,8 @@ for m in reversed(moduli[-40:]):
         p_root = util.fast_exp(p_root_g, N // n[dim], m)
         p_root_r = util.principal_root_of_unity(n[dim]-1, m)
         p_root_r_inv = util.fast_exp(p_root_r, m-2, m)
-        B = rader(n[dim], p_root, p_root_r, m)
 
-        bit_reversal = bit_reversal.tile(reps[dim])
         twiddle_factors = [np.tile(f, reps[dim]) for f in twiddle_factors]
-        B = np.tile(B, reps[dim])
 
         wn = np.array([util.fast_exp(p_root_r, i, m) for i in range(n[dim] - 1)])
         wn_inv = np.array([util.fast_exp(p_root_r_inv, i, m) for i in range(n[dim] - 1)])
@@ -123,10 +122,13 @@ for m in reversed(moduli[-40:]):
             data[idx][:len(twiddle_factors[stage])] = (wn[twiddle_factors[stage]] * R) % m
             idx += 1
 
-        B_data = bit_reversal(np.tile(B, reps[dim]))
-        B_data_0 = B_data[::2]
-        B_data_1 = B_data[1::2]
-
+        B = rader(n[dim], p_root, p_root_r, m)
+        print(len(B))
+        bit_reversal = bit_reversal.tile(256//len(B))
+        B_data = bit_reversal(np.tile(B, 256//len(B)))
+        B_data_0 = B_data[1::2]
+        B_data_1 = B_data[::2]
+        print(len(B_data_0), len(B_data_1))
         data[idx][:len(B_data_0)] = (B_data_0 * R) % m
         idx += 1
         data[idx][:len(B_data_1)] = (B_data_1 * R) % m
@@ -136,6 +138,7 @@ for m in reversed(moduli[-40:]):
             data[idx][:len(twiddle_factors[stage])] = (wn_inv[twiddle_factors[stage]] * R) % m
             idx += 1
 
+print(len(data) / 40)
 
 # Write the data to a mem file
 with open("twiddle_factor_tables.mem", "w") as f:

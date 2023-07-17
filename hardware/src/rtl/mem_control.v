@@ -61,6 +61,9 @@ module mem_control(
         end else if (incr) begin
             reg_cs2_shift <= next_shift;
             reg_cs1_shift <= (next_shift == 0) ? 0 : (SIZE - next_shift);
+        end else begin
+            reg_cs2_shift <= reg_cs2_shift;
+            reg_cs1_shift <= reg_cs1_shift;
         end
     end
     

@@ -20,7 +20,8 @@ module ntt #(
     
     // Define parameters
     localparam MODMUL_DELAY = (`MODRED_DELAY + `INTMUL_DELAY + 1);
-    localparam PIPELINE_DELAY = MODMUL_DELAY + 1;
+    localparam MEM_DELAY = 2;
+    localparam PIPELINE_DELAY = (MODMUL_DELAY + MEM_DELAY + 2);
     localparam BUTTERFLY_UNITS = 128;
     localparam MAX_PARALLEL_NTTS = 17;
     localparam MODULI = {32'd4244570881, 32'd4043247361, 32'd3909031681, 32'd3690931201, 32'd3623823361, 32'd3556715521, 32'd3523161601, 32'd3506384641, 32'd3439276801, 32'd3422499841, 32'd3204399361, 32'd3187622401, 32'd3154068481, 32'd3086960641, 32'd2952744961, 32'd2734644481, 32'd2516544001, 32'd2466213121, 32'd2415882241, 32'd2382328321, 32'd2365551361, 32'd2164227841, 32'd2130673921, 32'd2097120001, 32'd1862242561, 32'd1711249921, 32'd1644142081, 32'd1627365121, 32'd1593811201, 32'd1577034241, 32'd1509926401, 32'd1358933761, 32'd1275048961, 32'd1157610241, 32'd1107279361, 32'd838848001, 32'd721409281, 32'd654301441, 32'd419424001, 32'd335539201};
@@ -55,24 +56,46 @@ module ntt #(
     wire [SIZE-1:0]        we_D;
     
     delay_n_cycles #(
-        .N(1),
-        .WIDTH(28)
+        .N(MEM_DELAY),
+        .WIDTH(12)
     ) D1_ctrl_inst (
         .clk        (clk),
         .reset      (1'b0),
-        .data_in    ({cs2_shift, rpp_op, brp_op, bfa_mode, bfa_swap, bfa_w_idx}),
-        .data_out   ({cs2_shift_D, rpp_op_D, brp_op_D, bfa_mode_D, bfa_swap_D, bfa_w_idx_D})
+        .data_in    ({cs2_shift, rpp_op}),
+        .data_out   ({cs2_shift_D, rpp_op_D})
+    );
+    
+    delay_n_cycles #(
+        .N(MEM_DELAY + 1),
+        .WIDTH(16)
+    ) D2_ctrl_inst (
+        .clk        (clk),
+        .reset      (1'b0),
+        .data_in    ({brp_op, bfa_mode, bfa_swap, bfa_w_idx}),
+        .data_out   ({brp_op_D, bfa_mode_D, bfa_swap_D, bfa_w_idx_D})
+    );
+    
+    delay_n_cycles #(
+        .N(PIPELINE_DELAY - 1),
+        .WIDTH(6)
+    ) D3_ctrl_inst (
+        .clk        (clk                                        ),
+        .reset      (1'b0                                       ),
+        .data_in    ({merge_sel, add_b_in_sel}       ),
+        .data_out   ({merge_sel_D, add_b_in_sel_D} )
     );
     
     delay_n_cycles #(
         .N(PIPELINE_DELAY),
-        .WIDTH(15)
-    ) D2_ctrl_inst (
+        .WIDTH(9)
+    ) D4_ctrl_inst (
         .clk        (clk                                        ),
         .reset      (1'b0                                       ),
-        .data_in    ({merge_sel, add_b_in_sel, cs1_shift}       ),
-        .data_out   ({merge_sel_D, add_b_in_sel_D, cs1_shift_D} )
+        .data_in    (cs1_shift   ),
+        .data_out   (cs1_shift_D )
     );
+    
+    
     
     delay_n_cycles #(
         .N(PIPELINE_DELAY),
@@ -142,7 +165,7 @@ module ntt #(
     );
     
     wire [WIDTH*SIZE-1:0] cs2_in, cs2_out;
-    
+        
     assign cs2_in = mem_out;
     assign dout   = mem_out;
     
@@ -156,6 +179,7 @@ module ntt #(
     );
     
     wire [SIZE*WIDTH-1:0] rpp_in, rpp_out;
+    reg [SIZE*WIDTH-1:0] rpp_out_D;
     
     assign rpp_in = cs2_out;
     
@@ -170,7 +194,11 @@ module ntt #(
     
     wire [(SIZE-1)*WIDTH-1:0] brp_in, brp_out;
     
-    assign brp_in = rpp_out[(SIZE-1)*WIDTH - 1 : 0];
+    always @(posedge clk) begin
+        rpp_out_D <= rpp_out;
+    end
+    
+    assign brp_in = rpp_out_D[(SIZE-1)*WIDTH - 1 : 0];
     
     bit_reversal #(
         .SIZE(SIZE-1),
@@ -238,7 +266,7 @@ module ntt #(
     
     generate
         for (i = 0; i < 17; i = i + 1) begin
-            assign first_points[(i+1)*WIDTH-1 -: WIDTH] = rpp_out[WIDTH*(SIZE-i) - 1 -: WIDTH];
+            assign first_points[(i+1)*WIDTH-1 -: WIDTH] = rpp_out_D[WIDTH*(SIZE-i) - 1 -: WIDTH];
         end
     endgenerate
     
@@ -308,10 +336,13 @@ module ntt #(
     end
     endgenerate
     
-    reg [SIZE*WIDTH - 1 : 0] merged_result;
+    reg [SIZE*WIDTH - 1 : 0] merged_result, merged_result_D;
        
     always @(*) begin : merge
         integer i;
+        // default
+        merged_result[SIZE*WIDTH - 1 -: 256*WIDTH]     = bfa_out;
+        merged_result[WIDTH - 1 : 0]                   = adder_result[0];
         case (merge_sel_D)
             3'd0: begin
                 merged_result[SIZE*WIDTH - 1 -: 256*WIDTH] = bfa_out;
@@ -355,5 +386,9 @@ module ntt #(
         endcase
     end
     
-    assign cs1_in = merged_result;
+    always @(posedge clk) begin
+        merged_result_D <= merged_result;
+    end
+        
+    assign cs1_in = merged_result_D;
 endmodule

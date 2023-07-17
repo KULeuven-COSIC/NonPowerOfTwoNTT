@@ -91,6 +91,7 @@ module tb_ntt;
       mem_addr = {257{row[7:0]}}; // Set the memory address
       // Assert mem_write for one clock cycle to write the row
       #`CLK_PERIOD;
+      #`CLK_PERIOD;
       $display("dout = %h", dout);
       for (col = 0; col < 257; col = col + 1) begin
           data[257 * row + col] = dout[(col+1)*32-1 -: 32];

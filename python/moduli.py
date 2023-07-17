@@ -6,6 +6,7 @@ def is_prime(n):
         return False
     return all(n % i for i in range(3, int(math.sqrt(n)) + 1, 2))
 
+
 a = 257 * 17 * 5 * 3 * 256 * np.arange(1, 256, dtype=np.uint64) + 1
 
 foo = np.vectorize(is_prime)

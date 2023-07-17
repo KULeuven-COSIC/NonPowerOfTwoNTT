@@ -1,16 +1,15 @@
 `timescale 1ns / 1ps
 
 
-module hweval_circular_shift ( 
+module hweval_circular_shift #(
+    parameter WIDTH = 32,
+    parameter SIZE = 257
+) ( 
   input wire clk,
   input wire [SIZE*WIDTH-1:0] in_list, // 257 32-bit values
   input wire [8:0] in_shift, // Shift amount
   output wire [SIZE*WIDTH-1:0] out_list // Circularly shifted list
-);
-  // Define parameters
-  localparam WIDTH = 32;
-  localparam SIZE = 257;  
-  
+); 
   // Define signals
   reg [WIDTH*SIZE-1:0]  input_list;
   reg [8:0]             shift_amount;

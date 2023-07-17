@@ -2,15 +2,15 @@
 
 // Define parameters
 
-module hweval_merged_permutation ( 
+module hweval_merged_permutation # (
+  parameter WIDTH = 32,
+  parameter SIZE = 257
+) ( 
   input wire clk,
   input wire [SIZE*WIDTH-1:0] in_list,
   input wire [1:0] in_perm,
   output wire [SIZE*WIDTH-1:0] out_list
 );
-  localparam WIDTH = 32;
-  localparam SIZE = 257;
-  
   // Define signals
   reg [WIDTH*SIZE-1:0]  input_list;
   reg [1:0]             perm_select;
