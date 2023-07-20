@@ -18,18 +18,19 @@ module butterfly_array #(
     output wire [SIZE-1:0][WIDTH-1:0]  B_out
     );
     
-    reg [WIDTH-1:0] w_lut [0:SIZE-1][0:LUT_SIZE-1];
-    
-    initial begin : init_table  
-      $readmemh("twiddle_factor_tables.mem", w_lut);
-    end
+    wire [4095:0] w_rom_out;
+    twiddle_factor_rom w_lut (
+      .clka(clk),    // input wire clka
+      .addra(w_idx), // input wire [10 : 0] addra
+      .douta(w_rom_out)  // output wire [4095 : 0] douta
+    );
     
     genvar i;
     generate
         for (i = 0; i < SIZE; i = i + 1) begin : butterfly_unit
             
             wire [WIDTH-1:0] W;
-            assign W = w_lut[i][w_idx];
+            assign W = w_rom_out[(SIZE - i) * WIDTH - 1 -: WIDTH];
                         
             dit_butterfly butterfly_inst (
                 .clk     (clk      ),
@@ -38,7 +39,7 @@ module butterfly_array #(
                 .swap    (swap     ),
                 .A       (A[i]     ),
                 .B       (B[i]     ),
-                .W       (W        ),
+                .W       (W_rom    ),
                 .modulus (modulus  ),
                 .A_out   (A_out[i] ),
                 .B_out   (B_out[i] )

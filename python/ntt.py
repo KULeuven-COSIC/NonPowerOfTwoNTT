@@ -209,7 +209,7 @@ rader_perm_end.permutation -= 1
 rader_perm_end = rader_perm_end.tile(reps, padding=0)
 
 merged_permutation = Permutation(np.concatenate([(rader_perm_start * bit_reversal).permutation, collect_first.permutation]))
-#print("perm 0:", list(merged_permutation.permutation[0:-1]))
+print(list(merged_permutation.permutation[0:-1]))
 #print("perm 0:", list(merged_permutation.permutation[-1:]))
 
 for i in range(n[1]):
@@ -308,7 +308,7 @@ dit_permutations = [p.tile(reps) for p in dit_permutations]
 twiddle_factors = [np.tile(f, reps) for f in twiddle_factors]
 
 
-# print(list(bit_reversal(rader_perm_start(pfa_perm_1(np.arange(85))))))
+print(list(bit_reversal(rader_perm_start(pfa_perm_1(np.arange(85))))))
 
 
 for i in range(n[0]):
@@ -427,7 +427,7 @@ bit_reversal = bit_reversal.tile(reps)
 dit_permutations = [p.tile(reps) for p in dit_permutations]
 twiddle_factors = [np.tile(f, reps) for f in twiddle_factors]
 
-#print(list(bit_reversal(rader_perm_start(pfa_perm_2((-pfa_perm_1)(np.arange(85)))))))
+print(list(bit_reversal(rader_perm_start(pfa_perm_2((-pfa_perm_1)(np.arange(85)))))))
 #print(list(collect_first(pfa_perm_2((-pfa_perm_1)(np.arange(85))))))
 
 for i in range(n[0]):
@@ -504,7 +504,7 @@ for i in range(n[0]):
 for val in util.ntt(x, p_root_g, m):
     assert val in mem.mem
 
-
+"""
 data = []
 with open('new_memory_data.mem', 'r') as f:
     row = []
@@ -523,4 +523,4 @@ for i in range(85):
     print(np.array(data[i]))
     assert all(mem.mem.transpose()[i] == np.array(data[i]))
 exit(0)
-
+"""

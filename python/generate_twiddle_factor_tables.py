@@ -138,9 +138,22 @@ for m in moduli[-40:]:
             data[idx][:len(twiddle_factors[stage])] = (wn_inv[twiddle_factors[stage]] * R) % m
             idx += 1
 
-print(len(data) / 40)
+print(len(data))
+
+with open("twiddle_factor_ROM.coe", 'w') as coe_file:
+    coe_file.write("memory_initialization_radix=16;\n")
+    coe_file.write("memory_initialization_vector=\n")
+
+    for line in data[:-1]:
+        line = "".join(f"{p:08X}" for p in line)
+        coe_file.write(f"{line},\n")
+    line = "".join(f"{p:08X}" for p in data[-1])
+    coe_file.write(f"{line};\n")
+
+exit()
 
 # Write the data to a mem file
 with open("twiddle_factor_tables.mem", "w") as f:
     for i in range(len(data[0])):
         f.write(" ".join(f"{data[j][i]:08X}" for j in range(len(data))) + "\n")
+

@@ -67,12 +67,22 @@ module ntt #(
     
     delay_n_cycles #(
         .N(MEM_DELAY + 1),
-        .WIDTH(16)
+        .WIDTH(5)
     ) D2_ctrl_inst (
         .clk        (clk),
         .reset      (1'b0),
-        .data_in    ({brp_op, bfa_mode, bfa_swap, bfa_w_idx}),
-        .data_out   ({brp_op_D, bfa_mode_D, bfa_swap_D, bfa_w_idx_D})
+        .data_in    ({brp_op, bfa_mode, bfa_swap}),
+        .data_out   ({brp_op_D, bfa_mode_D, bfa_swap_D})
+    );
+    
+    delay_n_cycles #(
+        .N(MEM_DELAY),
+        .WIDTH(11)
+    ) D25_ctrl_inst (
+        .clk        (clk),
+        .reset      (1'b0),
+        .data_in    (bfa_w_idx),
+        .data_out   (bfa_w_idx_D)
     );
     
     delay_n_cycles #(
