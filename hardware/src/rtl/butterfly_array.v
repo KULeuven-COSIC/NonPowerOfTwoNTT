@@ -39,7 +39,7 @@ module butterfly_array #(
                 .swap    (swap     ),
                 .A       (A[i]     ),
                 .B       (B[i]     ),
-                .W       (W_rom    ),
+                .W       (W        ),
                 .modulus (modulus  ),
                 .A_out   (A_out[i] ),
                 .B_out   (B_out[i] )

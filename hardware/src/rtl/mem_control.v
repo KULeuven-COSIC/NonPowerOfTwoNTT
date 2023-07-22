@@ -15,7 +15,7 @@ module mem_control(
     
     localparam SIZE  = 257;
     localparam DEPTH = 85;
-    localparam SHIFT = 85;
+    localparam SHIFT = 3*85;
        
     wire mode;
     assign mode = (stage == 2'd0) ? 0 : 1;
@@ -30,7 +30,7 @@ module mem_control(
     
     // shift update logic
     localparam SHIFT_M0 = 1;
-    localparam SHIFT_M1 = 85;
+    localparam SHIFT_M1 = 3*85;
      
     reg [8:0] reg_cs1_shift;
     reg [8:0] reg_cs2_shift;
@@ -75,7 +75,7 @@ module mem_control(
     
     always @(posedge clk) begin
         if (reset || soft_reset) begin
-            reg_we <= {172'b0, {85{1'b1}}};
+            reg_we <= {2'b0, {255{1'b1}}};
         end else if (incr) begin
             reg_we <= {reg_we[SHIFT - 1 : 0], reg_we[SIZE - 1 -: SIZE - SHIFT]};
         end else begin

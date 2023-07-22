@@ -11,7 +11,7 @@ module address_generator(
     
     localparam SIZE  = 257;
     localparam DEPTH = 85;
-    localparam SHIFT = 85;
+    localparam SHIFT = 85*3;
     
     reg  [7:0] address_reg            [0:256];
     wire [7:0] next_addr_add          [0:256];

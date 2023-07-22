@@ -25,8 +25,8 @@ module controller # (
     
     // Constants
     localparam N_0 = 85;
-    localparam N_1 = 257;
-    localparam N_2 = 257;
+    localparam N_1 = 256;
+    localparam N_2 = 256;
     localparam NTT_STEPS_0 = 8;
     localparam NTT_STEPS_1 = 4;
     localparam NTT_STEPS_2 = 2;
@@ -70,7 +70,11 @@ module controller # (
         if (reset || rst_row) begin
             row <= 'd0;
         end else if (incr_row) begin
-            row <= row + 1;
+            if (stage == 0) begin
+                row <= row + 1;
+            end else begin
+                row <= row + 3;
+            end
         end else begin
             row <= row;
         end
@@ -258,7 +262,10 @@ module controller # (
     assign merge_sel    = {ctrl_merge_mode, stage};
     assign addr_read    = addr;
     assign addr_write   = addr;
-    assign we           = ctrl_we ? mem_we : 257'b0;
+    assign we           = ctrl_we ?
+                                (mem_we & {2'b11, {85{(stage == 0) || (row != 0)}}, {170{1'b1}}})
+                            :
+                                257'b0;
     assign bfa_w_idx    = reg_w_idx;
     assign done         = state == IDLE;
     

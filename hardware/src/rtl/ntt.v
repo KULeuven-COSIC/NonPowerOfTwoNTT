@@ -23,7 +23,7 @@ module ntt #(
     localparam MEM_DELAY = 2;
     localparam PIPELINE_DELAY = (MODMUL_DELAY + MEM_DELAY + 2);
     localparam BUTTERFLY_UNITS = 128;
-    localparam MAX_PARALLEL_NTTS = 17;
+    localparam MAX_PARALLEL_NTTS = 85;
     localparam MODULI = {32'd4244570881, 32'd4043247361, 32'd3909031681, 32'd3690931201, 32'd3623823361, 32'd3556715521, 32'd3523161601, 32'd3506384641, 32'd3439276801, 32'd3422499841, 32'd3204399361, 32'd3187622401, 32'd3154068481, 32'd3086960641, 32'd2952744961, 32'd2734644481, 32'd2516544001, 32'd2466213121, 32'd2415882241, 32'd2382328321, 32'd2365551361, 32'd2164227841, 32'd2130673921, 32'd2097120001, 32'd1862242561, 32'd1711249921, 32'd1644142081, 32'd1627365121, 32'd1593811201, 32'd1577034241, 32'd1509926401, 32'd1358933761, 32'd1275048961, 32'd1157610241, 32'd1107279361, 32'd838848001, 32'd721409281, 32'd654301441, 32'd419424001, 32'd335539201};
     
     genvar i;
@@ -275,7 +275,7 @@ module ntt #(
     wire [WIDTH-1:0] second_points [0:6][0:MAX_PARALLEL_NTTS-1];
     
     generate
-        for (i = 0; i < 17; i = i + 1) begin
+        for (i = 0; i < MAX_PARALLEL_NTTS; i = i + 1) begin
             assign first_points[(i+1)*WIDTH-1 -: WIDTH] = rpp_out_D[WIDTH*(SIZE-i) - 1 -: WIDTH];
         end
     endgenerate
@@ -309,15 +309,15 @@ module ntt #(
             assign second_points[0][i] = 'b0;
             assign second_points[4][i] = 'b0;
         end
-        if (i < 5) begin
-            assign second_points[1][4-i] = bfa_a_out[(8*i+1)*WIDTH - 1 -: WIDTH];
-            assign second_points[5][4-i] = bfa_a_in_D[(8*i+1)*WIDTH - 1 -: WIDTH];
+        if (i < 5*3) begin
+            assign second_points[1][i] = bfa_a_out[(8*i+1)*WIDTH - 1 -: WIDTH];
+            assign second_points[5][i] = bfa_a_in_D[(8*i+1)*WIDTH - 1 -: WIDTH];
         end else begin
             assign second_points[1][i] = 'b0;
             assign second_points[5][i] = 'b0;
         end
-        assign second_points[2][16-i] = bfa_a_out[(2*i+1)*WIDTH - 1 -: WIDTH];
-        assign second_points[6][16-i] = bfa_a_in_D[(2*i+1)*WIDTH - 1 -: WIDTH];
+        assign second_points[2][i] = bfa_a_out[(2*i+1)*WIDTH - 1 -: WIDTH];
+        assign second_points[6][i] = bfa_a_in_D[(2*i+1)*WIDTH - 1 -: WIDTH];
         assign second_points[3][i] = 'b0;
     end
     endgenerate
@@ -359,15 +359,15 @@ module ntt #(
                 merged_result[WIDTH - 1 : 0]               = adder_result[0];
             end
             3'd1: begin
-                for (i = 0; i < 5; i = i + 1) begin
+                for (i = 0; i < 3*5; i = i + 1) begin
                     merged_result[(17*i+17)*WIDTH - 1 -:16*WIDTH] = bfa_out[(16*i+16)*WIDTH - 1 -:16*WIDTH];
-                    merged_result[(17*i+1)*WIDTH - 1 -:WIDTH]     = adder_result[4-i];
+                    merged_result[(17*i+1)*WIDTH - 1 -:WIDTH]     = adder_result[i];
                 end
             end
             3'd2: begin
-                for (i = 0; i < 17; i = i + 1) begin
+                for (i = 0; i < 3*17; i = i + 1) begin
                     merged_result[(5*i+5)*WIDTH - 1 -:4*WIDTH] = bfa_out[(4*i+4)*WIDTH - 1 -:4*WIDTH];
-                    merged_result[(5*i+1)*WIDTH - 1 -:WIDTH] = adder_result[16-i];
+                    merged_result[(5*i+1)*WIDTH - 1 -:WIDTH] = adder_result[i];
                 end
             end
             3'd4: begin
@@ -376,17 +376,17 @@ module ntt #(
                 merged_result[WIDTH - 1 : 0]                   = adder_result_D[0];
             end
             3'd5: begin
-                for (i = 0; i < 5; i = i + 1) begin
+                for (i = 0; i < 3*5; i = i + 1) begin
                     merged_result[(17*i+17)*WIDTH - 1 -:16*WIDTH] = mult_out[(16*i+16)*WIDTH - 1 -:16*WIDTH];
-                    merged_result[(17*i+2)*WIDTH - 1 -:WIDTH]     = adder_result[4-i];
-                    merged_result[(17*i+1)*WIDTH - 1 -:WIDTH]     = adder_result_D[4-i];
+                    merged_result[(17*i+2)*WIDTH - 1 -:WIDTH]     = adder_result[i];
+                    merged_result[(17*i+1)*WIDTH - 1 -:WIDTH]     = adder_result_D[i];
                 end
             end
             3'd6: begin
-                for (i = 0; i < 17; i = i + 1) begin
+                for (i = 0; i < 3*17; i = i + 1) begin
                     merged_result[(5*i+5)*WIDTH - 1 -:4*WIDTH] = mult_out[(4*i+4)*WIDTH - 1 -:4*WIDTH];
-                    merged_result[(5*i+2)*WIDTH - 1 -:WIDTH] = adder_result[16-i];
-                    merged_result[(5*i+1)*WIDTH - 1 -:WIDTH] = adder_result_D[16-i];
+                    merged_result[(5*i+2)*WIDTH - 1 -:WIDTH] = adder_result[i];
+                    merged_result[(5*i+1)*WIDTH - 1 -:WIDTH] = adder_result_D[i];
                 end
             end
             default: begin
