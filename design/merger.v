@@ -23,6 +23,8 @@ module merger #(
     
     always @(*) begin : merger
         integer i;
+        merged_result[SIZE*WIDTH - 1 -: 256*WIDTH] = bfa_out;
+        merged_result[WIDTH - 1 : 0]               = adder_result[WIDTH-1:0];
         case (merge_sel)
             3'd0: begin
                 merged_result[SIZE*WIDTH - 1 -: 256*WIDTH] = bfa_out;
@@ -58,10 +60,6 @@ module merger #(
                     merged_result[(5*i+2)*WIDTH - 1 -:WIDTH] = adder_result[(i+1)*WIDTH-1 -: WIDTH];
                     merged_result[(5*i+1)*WIDTH - 1 -:WIDTH] = adder_result_previous[(i+1)*WIDTH-1 -: WIDTH];
                 end
-            end
-            default: begin
-                merged_result[SIZE*WIDTH - 1 -: 256*WIDTH]     = bfa_out;
-                merged_result[WIDTH - 1 : 0]                   = adder_result[WIDTH-1 : 0];
             end
         endcase
     end

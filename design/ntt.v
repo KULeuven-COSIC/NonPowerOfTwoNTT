@@ -21,7 +21,7 @@ module ntt #(
     // Define parameters
     localparam MODMUL_DELAY = (`MODRED_DELAY + `INTMUL_DELAY + 1 + 1);
     localparam MEM_DELAY = 2;
-    localparam PIPELINE_DELAY = (MODMUL_DELAY + MEM_DELAY + 2) + 1 + 1 + 1;
+    localparam PIPELINE_DELAY = (MODMUL_DELAY + MEM_DELAY + 2) + 1 + 1 + 2;
     localparam BUTTERFLY_UNITS = 128;
     localparam N_ADDERS = 51;
 
@@ -113,7 +113,7 @@ module ntt #(
     );
     
     delay_fifo #(
-        .DELAY(PIPELINE_DELAY - 2),
+        .DELAY(PIPELINE_DELAY - 3),
         .WIDTH(6)
     ) inst_delay_ctrl_4 (
         .clk        (clk                          ),
@@ -123,7 +123,7 @@ module ntt #(
     );
     
     delay_fifo #(
-        .DELAY(PIPELINE_DELAY - 1),
+        .DELAY(PIPELINE_DELAY - 2),
         .WIDTH(9)
     ) inst_delay_ctrl_5 (
         .clk        (clk         ),
@@ -186,14 +186,15 @@ module ntt #(
         .shifted_list   (cs1_out        )
     );
     
-    reg [WIDTH*SIZE-1:0] cs1_out_D;
+    reg [WIDTH*SIZE-1:0] cs1_out_D, cs1_out_DD;
     always @(posedge clk) begin
         cs1_out_D <= cs1_out;
+        cs1_out_DD <= cs1_out_D;
     end
     
     
     wire [SIZE*WIDTH-1:0] mem_in, mem_out;
-    assign mem_in = mem_write ? din : cs1_out_D;
+    assign mem_in = mem_write ? din : cs1_out_DD;
     
     memory #(
         .N(SIZE)
@@ -373,6 +374,18 @@ module ntt #(
     
     wire [N_ADDERS*WIDTH-1:0] adders_to_merger;
     
+    // Allow retiming
+    wire [WIDTH-1:0] modulus_D;
+        delay_fifo #(
+        .DELAY(MODMUL_DELAY + 1),
+        .WIDTH(WIDTH)
+    ) inst_delay_modulus (
+        .clk(clk                  ),
+        .reset(1'b0               ),
+        .data_in(modulus          ),
+        .data_out(modulus_D       )
+    );
+
     // Adders for performing additions required by Rader's algorithm
     adders #(
         .WIDTH(WIDTH),
@@ -380,7 +393,7 @@ module ntt #(
     ) inst_adders (
         .in_first_points  (first_points_D         ),
         .in_second_points (second_points_to_adders),
-        .modulus          (modulus                ),
+        .modulus          (modulus_D              ),
         .out_adder_result (adders_to_merger       )
     );
            
